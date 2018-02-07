@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Treasure Hunter</string>
+    <string name="search_nothing">Nothing detached</string>
+    <string name="hint_0">There seems to be nothing</string>
+    <string name="hint_1">Wait, I found something</string>
+    <string name="hint_2">You are getting closer</string>
+    <string name="hint_3">You almost get there</string>
+    <string name="hint_4">You get it</string>>
+</resources>

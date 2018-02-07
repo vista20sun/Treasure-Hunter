@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="Circle_Halo">
+        <attr name="bgColor" format="color"/>
+        <attr name="fgColor" format="color"/>
+        <attr name="r" format="integer"/>
+        <attr name="strokeWidth" format="integer"/>
+        <attr name="max" format="integer" />
+        <attr name="progress" format="integer"/>
+        <attr name="drawStyle">
+            <enum name="STROKE" value="0"/>
+            <enum name="FILL" value="1"/>
+        </attr>
+    </declare-styleable>
+</resources>
