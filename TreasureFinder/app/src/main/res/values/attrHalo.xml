@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <declare-styleable name="Circle_Halo">
+    <declare-styleable name="BackGround">
         <attr name="bgColor" format="color"/>
         <attr name="fgColor" format="color"/>
         <attr name="r" format="integer"/>

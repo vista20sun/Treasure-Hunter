@@ -6,39 +6,6 @@
     android:layout_height="match_parent"
     tools:context="com.example.vista.treasurefinder.MainActivity">
 
-    <com.example.vista.treasurefinder.CircleHalo
-        android:id="@+id/circleHalo"
-        android:layout_width="890dp"
-        android:layout_height="890dp"
-        app:layout_constraintBottom_toBottomOf="@+id/distance"
-        app:layout_constraintEnd_toEndOf="@+id/distance"
-        app:layout_constraintStart_toStartOf="@+id/distance"
-        app:layout_constraintTop_toTopOf="@+id/distance" />
-
-    <TextView
-        android:id="@+id/hint"
-        android:layout_width="wrap_content"
-        android:layout_height="19dp"
-        android:layout_marginTop="8dp"
-        android:text="Hello World!"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/distance" />
-
-    <TextView
-        android:id="@+id/distance"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="50dp"
-        android:gravity="center"
-        android:text="TextView"
-        android:textAppearance="@android:style/TextAppearance.Material.Large"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <ToggleButton
         android:textOn="ON"
         android:textOff="OFF"
@@ -63,6 +30,15 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/SearchSwitch" />
+
+    <com.example.vista.treasurefinder.ColoredBackground
+        android:id="@+id/colorbg"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <SeekBar
         android:id="@+id/testBar"

@@ -17,9 +17,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.SeekBar;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -27,23 +29,21 @@ import org.altbeacon.beacon.Beacon;
 import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
+import org.altbeacon.beacon.Identifier;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 
 import java.util.Collection;
-import java.util.Locale;
 import java.util.PriorityQueue;
 
-public class MainActivity extends AppCompatActivity implements BeaconConsumer,CircleHalo.StatementChangeListener{
+public class MainActivity extends AppCompatActivity implements BeaconConsumer{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        halo = findViewById(R.id.circleHalo);
-        halo.setListener(this);
-        hint = findViewById(R.id.hint);
+        backGround = findViewById(R.id.colorbg);
         dropCount=0;
         lostCount=0;
         current = null;
@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
             bar.setVisibility(View.VISIBLE);
             bar.setMax(100);
             bar.setProgress(33);
-            //halo.setStrokeWidth(0,100,33);
+            //backGround.setStrokeWidth(0,100,33);
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
 
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
-                    halo.setStrokeWidth(0,100,seekBar.getProgress());
+                    backGround.setRatio(0,100,seekBar.getProgress());
                 }
             });
             return;
@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
             public void onClick(View v){
                 boolean checked = switchButton.isChecked();
                 refresh.setEnabled(checked);
+                backGround.setShowUp(checked);
                 if(checked){
                     if(!checkLocationPermission())
                         return;
@@ -103,6 +104,15 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
                 }
             }
         });
+        switchButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if(switchButton.isChecked())
+                    return false;
+                setting();
+                return true;
+            }
+        });
         refresh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -110,8 +120,56 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
                 beaconManager.bind(MainActivity.this);
             }
         });
-        distance = findViewById(R.id.distance);
         updateUI();
+    }
+
+    private void startFlash(final float rate){
+        if(!flashing)
+            return;
+        int time = (int) (500/rate);
+        if(animation == null) {
+            animation = new AlphaAnimation(1, 0.1f);
+            animation.setInterpolator(new LinearInterpolator());
+            animation.setRepeatCount(Animation.INFINITE);
+            animation.setRepeatMode(Animation.REVERSE);
+            animation.setDuration(time);
+        }
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                backGround.startAnimation(animation);
+            }
+        });
+    }
+    private void setFlashRate(final float rate){
+        if(!flashing||animation==null)
+            return;
+        int time = (int) (500/rate);
+        animation.setDuration(time);
+    }
+
+    private void stopFlash(){
+        if(!flashing)
+            return;
+        animation=null;
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                backGround.clearAnimation();
+            }
+        });
+    }
+
+
+    private void setting(){
+        Intent intent = new Intent(MainActivity.this,Settings.class);
+        intent.putExtra("colors",backGround.getColors());
+        intent.putExtra("splits",backGround.getSplits());
+        intent.putExtra("target",targetBeaconID);
+        intent.putExtra("gradual",backGround.isGradation());
+        intent.putExtra("flash",flashing);
+        intent.putExtra("custom",customeColor);
+        startActivityForResult(intent,REQUEST_SETTINGS);
     }
 
     /**
@@ -122,16 +180,20 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
         working = true;
         beaconManager.bind(MainActivity.this);
         streamID = sound.play(soundID,1,1,1,-1,(float) 0.5);
+        updateUI();
+        startFlash(0.5f);
     }
     private void stopSearching(){
         working = false;
         beaconManager.unbind(MainActivity.this);
         sound.stop(streamID);
+        stopFlash();
         streamID=-1;
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 updateUI();
+                stopFlash();
             }
         },800);
     }
@@ -151,7 +213,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
                 Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED)
             return true;
         ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                REQUESTBLUETOOTH_PERMISSION);
+                REQUEST_BLUETOOTH_PERMISSION);
         return false;
     }
 
@@ -177,28 +239,15 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
 
     //update the information that showed on screen with the closest beacon.
     private void updateUI(final BeaconRecord record){
-        halo.setStrokeWidth(BeaconRecord.referenceMinRSSI, BeaconRecord.referenceMaxRSSI,record.getmRSSI());
+        backGround.setRatio(BeaconRecord.referenceMinRSSI, BeaconRecord.referenceMaxRSSI,record.getmRSSI());
         float rate = (float) ((2.5 * (float)(record.getmRSSI()- BeaconRecord.referenceMinRSSI))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.5);
+        setFlashRate(rate);
         sound.setRate(streamID,rate);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                distance.setText(String.format(Locale.US,"%.2fM",record.getmDistance()));
-            }
-        });
     }
     //update the information that showed on screen while no beacon founded
     private void updateUI(){
-        halo.setStrokeWidth(BeaconRecord.referenceMinRSSI, BeaconRecord.referenceMaxRSSI, BeaconRecord.referenceMinRSSI);
-        float rate = (float) 0.5;
-        sound.setRate(streamID,rate);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                distance.setText(R.string.search_nothing);
-                hint.setText(R.string.hint_0);
-            }
-        });
+        backGround.setRatio(BeaconRecord.referenceMinRSSI, BeaconRecord.referenceMaxRSSI, BeaconRecord.referenceMinRSSI);
+        sound.setRate(streamID,0.5f);
     }
 
     /**
@@ -238,6 +287,18 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
                     Toast.makeText(this, "Please Open Bluetooth", Toast.LENGTH_SHORT).show();
                     switchButton.setChecked(false);
             }
+        }else if(requestCode == REQUEST_SETTINGS){
+            switch(resultCode){
+                case RESULT_OK:
+                    flashing = data.getBooleanExtra("setFlash",false);
+                    backGround.setGradation(data.getBooleanExtra("setGradual",true));
+                    customeColor = data.getBooleanExtra("setCustomColor",false);
+                    targetBeaconID = data.getIntExtra("setTarget",0);
+                    if(customeColor)
+                        backGround.setColors(data.getIntArrayExtra("setColors"),data.getIntArrayExtra("setSplits"));
+                    else
+                        backGround.setColors(getResources().getIntArray(R.array.BgColors),getResources().getIntArray(R.array.BgSplit));
+            }
         }
     }
     /**
@@ -247,7 +308,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode){
-            case REQUESTBLUETOOTH_PERMISSION:
+            case REQUEST_BLUETOOTH_PERMISSION:
                 if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
                     BluetoothAdapter bleAdapter = BluetoothAdapter.getDefaultAdapter();
                     if(!bleAdapter.isEnabled()){
@@ -263,14 +324,6 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
         }
     }
 
-    /**
-     * change the hit information while the base color changed in the circleHalo
-     * hint strings defined in /res/value/array.xml
-     * */
-    @Override
-    public void onStatementChange(int state) {
-        hint.setText(hints[state]);
-    }
 
     /**
      * recall method for bind beacon service
@@ -323,20 +376,28 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
         });
 
         try{
-            beaconManager.startRangingBeaconsInRegion(new Region(targetUUID,null,null,null));
+            if(targetBeaconID==0)
+                beaconManager.startRangingBeaconsInRegion(new Region(targetUUID,null,null,null));
+            else{
+                String info[] = getResources().getStringArray(R.array.beacons)[targetBeaconID].split(":");
+                beaconManager.startRangingBeaconsInRegion(new Region(targetUUID,null,
+                        Identifier.fromInt(Integer.parseInt(info[0])),
+                        Identifier.fromInt(Integer.parseInt(info[1]))));
+            }
         }catch (RemoteException e){
             e.printStackTrace();
         }
     }
 
     private final static int DropThreshold = 10,LostThreshold=15,RSSIChangeThreshold=5;
-    private CircleHalo halo;
+    private ColoredBackground backGround;
     private boolean working;
     private String hints[];
-    private final static int REQUEST_ENABLE_BLE = 0xa01,REQUESTBLUETOOTH_PERMISSION=0xa93;
+    private final static int REQUEST_ENABLE_BLE = 0xa01,REQUEST_BLUETOOTH_PERMISSION=0xa93,REQUEST_SETTINGS=0xaaa;
     private SoundPool sound;
     private int soundID, streamID;
-    private int dropCount,lostCount;
+    private int dropCount,lostCount,flashRate;
+    private Animation animation;
     private final static String debugTag="TreasureFinder:";
     public static final String IBEACON_FORMAT = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24";
     private final static String targetUUID = "fda50693-a4e2-4fb1-afcf-c6eb07647825";
@@ -345,7 +406,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer,Ci
     private BeaconManager beaconManager;
     private Button refresh;
     private ToggleButton switchButton;
-    private TextView distance, hint;
+    private boolean customeColor = false,flashing = false;
+    private int targetBeaconID = 0;
 
 
 }

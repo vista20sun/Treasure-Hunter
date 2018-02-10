@@ -2,14 +2,14 @@
 
 
 <resources>
-    <integer-array name="haloColors">
+    <integer-array name="BgColors">
         <item>@color/halo_low</item>
         <item>@color/halo_ml</item>
         <item>@color/halo_mh</item>
         <item>@color/halo_high</item>
     </integer-array>
     <!-- color array's size should not smaller than the split array -->
-    <integer-array name="haloSplit">
+    <integer-array name="BgSplit">
         <item>0</item>
         <item>33</item>
         <item>66</item>
@@ -19,5 +19,13 @@
         <item>@string/hint_1</item>
         <item>@string/hint_2</item>
         <item>@string/hint_3</item>
+    </string-array>
+
+    <string-array name="beacons">
+        <item>none</item>
+        <item>1000:507</item>
+        <item>1000:600</item>
+        <item>1000:576</item>
+        <item>1000:512</item>
     </string-array>
 </resources>
