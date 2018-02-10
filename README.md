@@ -2,8 +2,8 @@
 
 Author: Yuyang Luo
 
-Hello There! 
 This is a Lite-weight software to look up the closet beacon around you for the game.
+
 app name already change to Treasure Hunter but the package name is still TreasureFinder  
 
 ## Environment:  
