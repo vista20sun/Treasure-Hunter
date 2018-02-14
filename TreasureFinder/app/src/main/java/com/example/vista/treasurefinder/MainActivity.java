@@ -20,7 +20,9 @@ import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.ScaleAnimation;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -44,7 +46,6 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
         setContentView(R.layout.activity_main);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         backGround = findViewById(R.id.colorbg);
-        dropCount=0;
         lostCount=0;
         current = null;
         loadSound();
@@ -52,11 +53,25 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
         working = false;
         hints=getResources().getStringArray(R.array.hints);
 
+        switchButton = findViewById(R.id.SearchSwitch);
+        switchButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if(switchButton.isChecked())
+                    return false;
+                setting();
+                return true;
+            }
+        });
+
         if(!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)){
             Toast.makeText(this,"BlueTooth not supported",Toast.LENGTH_SHORT).show();
             SeekBar bar = findViewById(R.id.testBar);
             bar.setVisibility(View.VISIBLE);
+            backGround.setShowUp(true);
+            flashing=true;
             bar.setMax(100);
+            startFlash(0.5f);
             bar.setProgress(33);
             //backGround.setStrokeWidth(0,100,33);
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -72,17 +87,21 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     backGround.setRatio(0,100,seekBar.getProgress());
+
+                    float rate = (float) ((2.5 * (float)(seekBar.getProgress()))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.5);
+                    setFlashRate(rate);
                 }
             });
             return;
             //if bluetooth not available in device, do not init functions for other view component but show the seekBar for debug UI
         }
+
         beaconManager = BeaconManager.getInstanceForApplication(this);
         beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout(IBEACON_FORMAT));// support iBeacon
-        beaconManager.setForegroundScanPeriod(300L);
 
-        switchButton = findViewById(R.id.SearchSwitch);
+
         refresh = findViewById(R.id.Refresh);
+        treasure = findViewById(R.id.treasure);
         refresh.setEnabled(false);
         switchButton.setChecked(false);
         switchButton.setOnClickListener(new ToggleButton.OnClickListener() {
@@ -104,15 +123,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
                 }
             }
         });
-        switchButton.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if(switchButton.isChecked())
-                    return false;
-                setting();
-                return true;
-            }
-        });
+
         refresh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -127,31 +138,44 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
         if(!flashing)
             return;
         int time = (int) (500/rate);
-        if(animation == null) {
-            animation = new AlphaAnimation(1, 0.1f);
-            animation.setInterpolator(new LinearInterpolator());
-            animation.setRepeatCount(Animation.INFINITE);
-            animation.setRepeatMode(Animation.REVERSE);
-            animation.setDuration(time);
+        if(flashAnimation == null) {
+            flashAnimation = new AlphaAnimation(1, 0.1f);
+            flashAnimation.setInterpolator(new LinearInterpolator());
+            flashAnimation.setRepeatCount(Animation.INFINITE);
+            flashAnimation.setRepeatMode(Animation.REVERSE);
+            flashAnimation.setDuration(time);
         }
         handler.post(new Runnable() {
             @Override
             public void run() {
-                backGround.startAnimation(animation);
+                backGround.startAnimation(flashAnimation);
             }
         });
     }
+
     private void setFlashRate(final float rate){
-        if(!flashing||animation==null)
+        if(!flashing|| flashAnimation ==null)
             return;
         int time = (int) (500/rate);
-        animation.setDuration(time);
+        flashAnimation.setDuration(time);
+    }
+    private void setZoomRate(float rate){
+        final Animation zoomAnimation = new ScaleAnimation(zoomRate,rate,zoomRate,rate,Animation.RELATIVE_TO_SELF,0.5f,Animation.RELATIVE_TO_SELF,0.5f);
+        zoomAnimation.setDuration(500);
+        zoomAnimation.setFillAfter(true);
+        zoomRate=rate;
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                treasure.startAnimation(zoomAnimation);
+            }
+        });
     }
 
     private void stopFlash(){
         if(!flashing)
             return;
-        animation=null;
+        flashAnimation =null;
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -193,7 +217,6 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
             @Override
             public void run() {
                 updateUI();
-                stopFlash();
             }
         },800);
     }
@@ -243,11 +266,15 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
         float rate = (float) ((2.5 * (float)(record.getmRSSI()- BeaconRecord.referenceMinRSSI))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.5);
         setFlashRate(rate);
         sound.setRate(streamID,rate);
+        float zoomR = (float) ((0.7 * (float)(record.getmRSSI()- BeaconRecord.referenceMinRSSI))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.3);
+        setZoomRate(zoomR);
     }
     //update the information that showed on screen while no beacon founded
     private void updateUI(){
         backGround.setRatio(BeaconRecord.referenceMinRSSI, BeaconRecord.referenceMaxRSSI, BeaconRecord.referenceMinRSSI);
         sound.setRate(streamID,0.5f);
+        setZoomRate(0.3f);
+        setFlashRate(0.5f);
     }
 
     /**
@@ -348,26 +375,24 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
                     Log.d(debugTag,String.format("[000]:rssi:%d/distance%.2f\n",temp.getmRSSI(),temp.getmDistance()));
                     if(current == null) {
                         current = temp;
-                        dropCount = 0;
                     }else{
-                        if(temp.getmRSSI()-current.getmRSSI()<RSSIChangeThreshold){
-                            dropCount++;
-                            if(dropCount>=DropThreshold){
-                                current = temp;
-                                dropCount=0;
-                                return;
-                            }
-                        }else{
-                            current = temp;
-                            dropCount=0;
-                        }
+                        current = temp;
                     }
                     updateUI(current);
                 }else{
                     Log.d(debugTag,"-----no detected-----");
                     lostCount++;
+                    if(lostCount%restartSearchThreshold==0){
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.d(debugTag,"restart searching service");
+                                beaconManager.unbind(MainActivity.this);
+                                beaconManager.bind(MainActivity.this);
+                            }
+                        }, (long) (Math.random()*100));
+                    }
                     if(lostCount>=LostThreshold){
-                        dropCount=0;
                         current = null;
                         updateUI();
                     }
@@ -389,15 +414,16 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
         }
     }
 
-    private final static int DropThreshold = 10,LostThreshold=15,RSSIChangeThreshold=5;
+    private final static int restartSearchThreshold = 5,LostThreshold=15;
     private ColoredBackground backGround;
     private boolean working;
     private String hints[];
     private final static int REQUEST_ENABLE_BLE = 0xa01,REQUEST_BLUETOOTH_PERMISSION=0xa93,REQUEST_SETTINGS=0xaaa;
     private SoundPool sound;
     private int soundID, streamID;
-    private int dropCount,lostCount,flashRate;
-    private Animation animation;
+    private int lostCount;
+    private float zoomRate;
+    private Animation flashAnimation;
     private final static String debugTag="TreasureFinder:";
     public static final String IBEACON_FORMAT = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24";
     private final static String targetUUID = "fda50693-a4e2-4fb1-afcf-c6eb07647825";
@@ -406,6 +432,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
     private BeaconManager beaconManager;
     private Button refresh;
     private ToggleButton switchButton;
+    private ImageView treasure;
     private boolean customeColor = false,flashing = false;
     private int targetBeaconID = 0;
 

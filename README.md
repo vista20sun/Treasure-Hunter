@@ -34,3 +34,9 @@ app name already change to Treasure Hunter but the package name is still Treasur
     * Add a setting screen (hold switch button when is off to geting), could open/close flicker, gradual color change. Could custom background colors in application.  
     * rewrite "README.md"  
 
+* 02/13/2018: (ver1.4)
+    * Adjusted sensitivity
+    * Add a scalable treasure chest icon into main screen
+    * Fix some bugs with flashing background
+    * Change some button's color
+

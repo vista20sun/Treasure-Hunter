@@ -13,7 +13,7 @@ public class BeaconRecord implements Comparable<BeaconRecord>{
     private double mDistance;
     private int mRSSI;
 
-    public final static int referenceMaxRSSI = -50,referenceMinRSSI=-100;
+    public final static int referenceMaxRSSI = -60,referenceMinRSSI=-90;
 
     public BeaconRecord(Beacon beacon){
         mId = beacon.getId2().toString()+beacon.getId3().toString();
