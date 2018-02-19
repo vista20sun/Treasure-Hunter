@@ -42,7 +42,7 @@ public class ColoredBackground extends View {
         setShowUp(false);
         setRatio_r(0);
         //setBackgroundColor(colors[0]);
-        gradation = true;
+        gradation = false;
         handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -62,19 +62,24 @@ public class ColoredBackground extends View {
 
     private synchronized void setRatio_r(int ratio) {
         if (ratio >= 0 && ratio <= 100) {
-            int splitPt = 0;
-            for (int i = 1; i < splits.length; i++) {
-                if (ratio <= splits[i]) {
-                    splitPt = i - 1;
-                    break;
-                }
-            }
             if (gradation) {
+                int splitPt = 0;
+                for (int i = 1; i < splits.length; i++) {
+                    if (ratio <= splits[i]) {
+                        splitPt = i - 1;
+                        break;
+                    }
+                }
                 bgColor = getMiddleColor(colors[splitPt], colors[splitPt + 1], splits[splitPt], splits[splitPt + 1], ratio);
                 Log.d("Colors", String.format("%d  0x%x 0x%x --- 0x%x %d\n", splitPt, colors[splitPt], colors[splitPt + 1], bgColor, ratio));
             } else {
-                if (ratio == 100)
-                    splitPt = splits.length - 1;
+                int splitPt = splits.length-1;
+                for (int i = 0; i < splits.length-1; i++) {
+                    if (ratio * 2 <= splits[i]+splits[i+1]) {
+                        splitPt = i ;
+                        break;
+                    }
+                }
                 bgColor = colors[splitPt];
             }
             currRatio = ratio;

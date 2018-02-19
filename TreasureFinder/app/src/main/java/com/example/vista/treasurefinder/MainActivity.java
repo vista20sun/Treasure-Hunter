@@ -128,6 +128,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
             @Override
             public void onClick(View v) {
                 beaconManager.unbind(MainActivity.this);
+                initAvgRssi();
                 beaconManager.bind(MainActivity.this);
             }
         });
@@ -192,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
         intent.putExtra("target",targetBeaconID);
         intent.putExtra("gradual",backGround.isGradation());
         intent.putExtra("flash",flashing);
-        intent.putExtra("custom",customeColor);
+        intent.putExtra("custom", customColor);
         startActivityForResult(intent,REQUEST_SETTINGS);
     }
 
@@ -202,6 +203,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
      * */
     private void startSearching(){
         working = true;
+        initAvgRssi();
         beaconManager.bind(MainActivity.this);
         streamID = sound.play(soundID,1,1,1,-1,(float) 0.5);
         updateUI();
@@ -262,11 +264,13 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
 
     //update the information that showed on screen with the closest beacon.
     private void updateUI(final BeaconRecord record){
-        backGround.setRatio(BeaconRecord.referenceMinRSSI, BeaconRecord.referenceMaxRSSI,record.getmRSSI());
-        float rate = (float) ((2.5 * (float)(record.getmRSSI()- BeaconRecord.referenceMinRSSI))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.5);
+        int avgRssi = getAvgRssi(record.getmRSSI());
+        Log.d(debugTag,String.format("avgRssi:%d\n",avgRssi));
+        backGround.setRatio(BeaconRecord.referenceMinRSSI, BeaconRecord.referenceMaxRSSI,avgRssi);
+        float rate = (float) ((2.5 * (float)(avgRssi- BeaconRecord.referenceMinRSSI))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.5);
         setFlashRate(rate);
         sound.setRate(streamID,rate);
-        float zoomR = (float) ((0.7 * (float)(record.getmRSSI()- BeaconRecord.referenceMinRSSI))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.3);
+        float zoomR = (float) ((0.7 * (float)(avgRssi- BeaconRecord.referenceMinRSSI))/(float)(BeaconRecord.referenceMaxRSSI- BeaconRecord.referenceMinRSSI) + 0.3);
         setZoomRate(zoomR);
     }
     //update the information that showed on screen while no beacon founded
@@ -318,10 +322,10 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
             switch(resultCode){
                 case RESULT_OK:
                     flashing = data.getBooleanExtra("setFlash",false);
-                    backGround.setGradation(data.getBooleanExtra("setGradual",true));
-                    customeColor = data.getBooleanExtra("setCustomColor",false);
+                    backGround.setGradation(data.getBooleanExtra("setGradual",false));
+                    customColor = data.getBooleanExtra("setCustomColor",false);
                     targetBeaconID = data.getIntExtra("setTarget",0);
-                    if(customeColor)
+                    if(customColor)
                         backGround.setColors(data.getIntArrayExtra("setColors"),data.getIntArrayExtra("setSplits"));
                     else
                         backGround.setColors(getResources().getIntArray(R.array.BgColors),getResources().getIntArray(R.array.BgSplit));
@@ -357,6 +361,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
      * each time found some beacons in a search period, use the one with the highest rssi to update the showing information.
      * if the rssi changes is great, increase dropCount, and ignore this change while the counter didn't reach the threshold
      * */
+
+
     @Override
     public void onBeaconServiceConnect() {
         beaconManager.removeAllRangeNotifiers();
@@ -383,14 +389,14 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
                     Log.d(debugTag,"-----no detected-----");
                     lostCount++;
                     if(lostCount%restartSearchThreshold==0){
+                        beaconManager.unbind(MainActivity.this);
                         handler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
                                 Log.d(debugTag,"restart searching service");
-                                beaconManager.unbind(MainActivity.this);
                                 beaconManager.bind(MainActivity.this);
                             }
-                        }, (long) (Math.random()*100));
+                        }, (long) (Math.random()*1000));
                     }
                     if(lostCount>=LostThreshold){
                         current = null;
@@ -413,6 +419,31 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
             e.printStackTrace();
         }
     }
+    private void initAvgRssi(){
+        writeIndex = 0;
+        avgRssi=-1;
+        avgDropCount=0;
+        rssiArray = new int[rssiSize];
+    }
+
+    private int getAvgRssi(int newRssi){
+
+        rssiArray[writeIndex++%rssiSize] = newRssi;
+        int sum=0,max = rssiSize>writeIndex? writeIndex: rssiSize;
+        for(int i = 0;i<max;i++)
+            sum+=rssiArray[i];
+        int temp = sum/max;
+        if(avgRssi==-1 || Math.abs(temp-avgRssi)<5)
+            avgRssi=temp;
+        else if(++avgDropCount>=avgCountMax){
+            avgRssi = temp;
+            avgDropCount=0;
+        }
+        return avgRssi;
+    }
+
+    private int writeIndex,avgRssi=-1,rssiArray[],avgDropCount;
+    private final int rssiSize=4,avgCountMax = 3;
 
     private final static int restartSearchThreshold = 5,LostThreshold=15;
     private ColoredBackground backGround;
@@ -433,7 +464,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer{
     private Button refresh;
     private ToggleButton switchButton;
     private ImageView treasure;
-    private boolean customeColor = false,flashing = false;
+    private boolean customColor = false,flashing = true;
     private int targetBeaconID = 0;
 
 
