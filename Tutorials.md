@@ -25,4 +25,8 @@ This application will looking for any iBecaon and get the rssi of the closest on
 * you can also change blackground colors, open or closing gradual color change and flashing background in this page...
 
 ## work with this app:
-when you start searching, the blackground change to read at once and start flashing(if opened), the application will also start buzzing when you turn on the searching. when you are geting close to the target beacon, the buzzing frequence will get higher, back ground will turn to blue and the Treasure chest icon will get bigger.
+when you start searching, the blackground change to read at once and start flashing(if opened), the application will also start buzzing when you turn on the searching. when you are geting close to the target beacon, the buzzing frequence will get higher, back ground will turn to blue and the Treasure chest icon will get bigger. it's work like that:
+![screen red](https://raw.githubusercontent.com/vista20sun/Treasure-Hunter/master/Screenshot/Screenshot_2018-02-21-19-31-26-520_com.example.vista.treasurefinder.png)
+![screen yellow](https://raw.githubusercontent.com/vista20sun/Treasure-Hunter/master/Screenshot/Screenshot_2018-02-21-21-14-38-051_com.example.vista.treasurefinder.png)
+![screen green](https://raw.githubusercontent.com/vista20sun/Treasure-Hunter/master/Screenshot/Screenshot_2018-02-21-21-11-36-596_com.example.vista.treasurefinder.png)
+![screen blue](https://raw.githubusercontent.com/vista20sun/Treasure-Hunter/master/Screenshot/Screenshot_2018-02-21-21-10-15-080_com.example.vista.treasurefinder.png)
